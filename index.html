@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<!-- Mendeklarasikan bahwa dokumen ini menggunakan standar HTML5 terbaru -->
+<html lang="en">
+
+<head>
+    <!-- Pengaturan encoding karakter agar mendukung semua simbol dan teks universal -->
+    <meta charset="UTF-8">
+
+    <!-- Pengaturan viewport agar tampilan responsif dan proporsional di layar HP maupun laptop -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Judul yang akan tampil di tab browser -->
+    <title>Belajar Otodidak - Kubus 3 Dimensi</title>
+
+    <style>
+        /* ========================================================
+           1. RESET & GAYA UMUM (GLOBAL STYLES)
+           ======================================================== */
+        * {
+            /* Menghitung ukuran lebar/tinggi elemen menyertakan padding & border */
+            box-sizing: border-box;
+            /* Menghilangkan margin dan padding bawaan browser agar layout rapi */
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            /* Memastikan tinggi halaman minimal setinggi 100% layar monitor (viewport height) */
+            min-height: 100vh;
+            /* Menggunakan Flexbox untuk menyusun elemen secara fleksibel */
+            display: flex;
+            /* Mengatur arah susunan elemen dari atas ke bawah (Judul -> Info -> Container Kubus) */
+            flex-direction: column;
+            /* Menempatkan konten persis di tengah secara vertikal (sumbu Y) */
+            justify-content: center;
+            /* Menempatkan konten persis di tengah secara horizontal (sumbu X) */
+            align-items: center;
+            /* Warna latar belakang gelap kebiruan agar warna kubus terlihat kontras & menyala */
+            background: #1a1a2e;
+            /* Jenis font tulisan */
+            font-family: Arial, sans-serif;
+            /* Warna default semua teks menjadi putih */
+            color: #ffffff;
+            /* Mencegah teks terblok/terpilih secara tidak sengaja saat mengklik kubus */
+            user-select: none;
+        }
+
+        /* ========================================================
+           2. JUDUL DAN TEKS KETERANGAN
+           ======================================================== */
+        h2 {
+            margin-bottom: 10px;
+            font-size: 22px;
+            letter-spacing: 1px; /* Jarak renggang antar huruf */
+            text-align: center;
+        }
+
+        p.info {
+            font-size: 13px;
+            color: #8a99ad;      /* Warna abu-abu terang */
+            margin-bottom: 45px; /* Jarak pemisah ke kotak kubus */
+            text-align: center;
+        }
+
+        /* ========================================================
+           3. TATA LETAK GRID (WADAH 4 KUBUS)
+           ======================================================== */
+        .container {
+            /* Menggunakan CSS Grid untuk membuat susunan baris dan kolom */
+            display: grid;
+            /* Membuat 2 kolom, masing-masing selebar 110px */
+            grid-template-columns: repeat(2, 110px);
+            /* Jarak renggang antar kubus (70px) agar saat berputar 3D tidak saling bertabrakan */
+            gap: 70px;
+        }
+
+        /* ========================================================
+           4. PANGGUNG 3D (SCENE)
+           ======================================================== */
+        .scene {
+            width: 100px;
+            height: 100px;
+            /* PERSPECTIVE: Kunci efek 3D! 
+               Menentukan jarak pandang mata pengamat ke objek (semakin kecil nilainya, semakin ekstrim efek 3D-nya) */
+            perspective: 600px;
+            /* Mengatur tata letak kubus dan label namanya agar berada di tengah */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ========================================================
+           5. ELEMEN KUBUS (CUBE)
+           ======================================================== */
+        .cube {
+            width: 100%;
+            height: 100%;
+            /* Posisi relatif sebagai patokan bagi ke-6 sisi kubus (face) yang posisinya absolut */
+            position: relative;
+            /* TRANSFORM-STYLE: PRESERVE-3D (Sangat Penting!)
+               Memerintahkan browser agar anak elemen di dalamnya (.face) tetap berada dalam ruang 3D,
+               bukan diratakan menjadi gambar 2D biasa */
+            transform-style: preserve-3d;
+            /* Menjalankan animasi rotasi 3D:
+               - putarKubus : nama keyframes animasi
+               - 8s         : durasi 1 putaran penuh (8 detik)
+               - infinite   : berputar selamanya tanpa henti
+               - linear     : kecepatan putaran konstan dari awal sampai akhir */
+            animation: putarKubus 8s infinite linear;
+            /* Mengubah bentuk kursor mouse menjadi telunjuk saat diarahkan ke kubus */
+            cursor: pointer;
+        }
+
+        /* EFEK HOVER: Saat kursor diarahkan ke kubus, hentikan putaran sementara */
+        .cube:hover {
+            animation-play-state: paused;
+        }
+
+        /* ========================================================
+           6. PROPERTI UMUM UNTUK SETIAP SISI KUBUS (.FACE)
+           ======================================================== */
+        .face {
+            /* Menumpuk semua 6 sisi di titik tengah kubus yang sama sebelum didorong ke posisi masing-masing */
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            /* Menggunakan Flexbox untuk menempatkan teks (Depan, Belakang, dll) persis di tengah permukaan */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            /* Garis tepi putih semi-transparan agar batas-batas kubus terlihat jelas */
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            /* Membuat sudut permukaan sedikit melengkung halus */
+            border-radius: 6px;
+            /* Bayangan gelap ke arah dalam untuk memberi efek kedalaman/pencahayaan */
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ========================================================
+           7. POSISI KE-6 SISI DALAM RUANG 3D
+           Rumus: Ukuran kubus adalah 100px. Titik pusatnya berada di 50px (setengah ukuran).
+           Maka setiap sisi didorong keluar dari pusat sebesar 50px menggunakan translateZ(50px).
+           ======================================================== */
+        
+        /* 1. Sisi Depan: Menghadap normal (0 derajat), didorong ke depan */
+        .front  { transform: rotateY(0deg) translateZ(50px); }
+
+        /* 2. Sisi Belakang: Diputar 180 derajat menghadap ke belakang, lalu didorong */
+        .back   { transform: rotateY(180deg) translateZ(50px); }
+
+        /* 3. Sisi Kanan: Diputar 90 derajat ke kanan (sumbu Y), lalu didorong */
+        .right  { transform: rotateY(90deg) translateZ(50px); }
+
+        /* 4. Sisi Kiri: Diputar -90 derajat ke kiri (sumbu Y), lalu didorong */
+        .left   { transform: rotateY(-90deg) translateZ(50px); }
+
+        /* 5. Sisi Atas: Diputar 90 derajat ke atas (sumbu X), lalu didorong */
+        .top    { transform: rotateX(90deg) translateZ(50px); }
+
+        /* 6. Sisi Bawah: Diputar -90 derajat ke bawah (sumbu X), lalu didorong */
+        .bottom { transform: rotateX(-90deg) translateZ(50px); }
+
+        /* ========================================================
+           8. PEWARNAAN MASING-MASING KUBUS
+           Menggunakan warna RGBA dengan transparansi 0.88 agar ada efek kilap/kaca
+           ======================================================== */
+        
+        /* Kubus Merah */
+        .merah .face  { background-color: rgba(231, 76, 60, 0.88); }
+
+        /* Kubus Biru */
+        .biru .face   { background-color: rgba(52, 152, 219, 0.88); }
+
+        /* Kubus Hijau */
+        .hijau .face  { background-color: rgba(46, 204, 113, 0.88); }
+
+        /* Kubus Kuning (teks diberi warna gelap #333 agar terbaca jelas di atas warna kuning) */
+        .kuning .face { background-color: rgba(241, 196, 15, 0.88); color: #333; }
+
+        /* ========================================================
+           9. VARIASI KECEPATAN & ARAH PUTARAN
+           Memberi nuansa dinamis agar keempat kubus tidak berputar kaku secara bersamaan
+           ======================================================== */
+        
+        /* Kubus Biru: Berputar terbalik (reverse) selama 10 detik */
+        .biru {
+            animation-duration: 10s;
+            animation-direction: reverse;
+        }
+
+        /* Kubus Hijau: Berputar sedikit lebih lambat (9 detik) */
+        .hijau {
+            animation-duration: 9s;
+        }
+
+        /* Kubus Kuning: Berputar lebih cepat (7 detik) dengan arah terbalik */
+        .kuning {
+            animation-duration: 7s;
+            animation-direction: reverse;
+        }
+
+        /* ========================================================
+           10. LABEL KETERANGAN KOTAK DI BAWAH KUBUS
+           ======================================================== */
+        .label {
+            margin-top: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #d1d8e0;
+        }
+
+        /* ========================================================
+           11. ATURAN ANIMASI PUTARAN 3D (KEYFRAMES)
+           Memutar kubus melintasi ketiga sumbu:
+           - rotateX : memutar secara vertikal (jungkir balik)
+           - rotateY : memutar secara horizontal (berputar ke samping)
+           - rotateZ : memutar secara kemiringan (seperti jarum jam)
+           ======================================================== */
+        @keyframes putarKubus {
+            0% {
+                /* Posisi awal: 0 derajat di semua sumbu */
+                transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+            }
+            100% {
+                /* Posisi akhir: 360 derajat (1 putaran penuh) di semua sumbu */
+                transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Judul Halaman -->
+    <h2>4 Kubus 3 Dimensi</h2>
+    <p class="info">Arahkan kursor ke kubus untuk menghentikan putaran</p>
+
+    <!-- CONTAINER: Wadah grid 2x2 yang menampung keempat kubus -->
+    <div class="container">
+
+        <!-- ================= KUBUS 1: MERAH ================= -->
+        <div class="scene">
+            <div class="cube merah">
+                <!-- 6 Permukaan Sisi Kubus Merah -->
+                <div class="face front">Depan</div>
+                <div class="face back">Belakang</div>
+                <div class="face right">Kanan</div>
+                <div class="face left">Kiri</div>
+                <div class="face top">Atas</div>
+                <div class="face bottom">Bawah</div>
+            </div>
+            <span class="label">Kotak Merah</span>
+        </div>
+
+        <!-- ================= KUBUS 2: BIRU ================= -->
+        <div class="scene">
+            <div class="cube biru">
+                <!-- 6 Permukaan Sisi Kubus Biru -->
+                <div class="face front">Depan</div>
+                <div class="face back">Belakang</div>
+                <div class="face right">Kanan</div>
+                <div class="face left">Kiri</div>
+                <div class="face top">Atas</div>
+                <div class="face bottom">Bawah</div>
+            </div>
+            <span class="label">Kotak Biru</span>
+        </div>
+
+        <!-- ================= KUBUS 3: HIJAU ================= -->
+        <div class="scene">
+            <div class="cube hijau">
+                <!-- 6 Permukaan Sisi Kubus Hijau -->
+                <div class="face front">Depan</div>
+                <div class="face back">Belakang</div>
+                <div class="face right">Kanan</div>
+                <div class="face left">Kiri</div>
+                <div class="face top">Atas</div>
+                <div class="face bottom">Bawah</div>
+            </div>
+            <span class="label">Kotak Hijau</span>
+        </div>
+
+        <!-- ================= KUBUS 4: KUNING ================= -->
+        <div class="scene">
+            <div class="cube kuning">
+                <!-- 6 Permukaan Sisi Kubus Kuning -->
+                <div class="face front">Depan</div>
+                <div class="face back">Belakang</div>
+                <div class="face right">Kanan</div>
+                <div class="face left">Kiri</div>
+                <div class="face top">Atas</div>
+                <div class="face bottom">Bawah</div>
+            </div>
+            <span class="label">Kotak Kuning</span>
+        </div>
+
+    </div>
+</body>
+
+</html>
